@@ -155,7 +155,7 @@
       <a href="/art" target="_blank" class="btn btn-lg btn-light fw-bold bg-white" style="border:0;background-color:#fff !important; color:black">ART CONTEST</a>
     </p>
 
-    <p class="lead" style="display:none;">
+    <p class="lead">
       Next Stream is <span style="font-weight:bold;" id="nextStream"></span> <br><span style="font-weight:bold;" id="countdown"></span>
     </p>
 
@@ -198,7 +198,7 @@
 <script>
   // Change timestamp to false if TBD
   // Change to an actual timestamp if countdown timer
-  const unixTimestamp = 1726421400;
+//   const unixTimestamp = 1726421400;
 
 
 function formatTimestamp(unixTimestamp) {
@@ -216,42 +216,126 @@ function formatTimestamp(unixTimestamp) {
     return `${day}, ${month} ${dayOfMonth} at ${time}`;
 }
 
-function countdown() {
-  const now = moment();
-  const target = moment.unix(unixTimestamp);
-  const duration = moment.duration(target.diff(now));
-  const weeks = Math.floor(duration.asWeeks());
-  const days = duration.days();
-  const hours = duration.hours();
-  const minutes = duration.minutes();
-  const seconds = duration.seconds();
+// function countdown() {
+//   const now = moment();
+//   const target = moment.unix(unixTimestamp);
+//   const duration = moment.duration(target.diff(now));
+//   const weeks = Math.floor(duration.asWeeks());
+//   const days = duration.days();
+//   const hours = duration.hours();
+//   const minutes = duration.minutes();
+//   const seconds = duration.seconds();
 
-  let result = '';
-  if (days > 0) result += `${days} day${days > 1 ? 's' : ''}, `;
-  if (hours > 0) result += `${hours} hour${hours > 1 ? 's' : ''}, `;
-  if (minutes > 0) result += `${minutes} minute${minutes > 1 ? 's' : ''}, `;
-  result += `${seconds} second${seconds > 1 ? 's' : ''}`;
+//   let result = '';
+//   if (days > 0) result += `${days} day${days > 1 ? 's' : ''}, `;
+//   if (hours > 0) result += `${hours} hour${hours > 1 ? 's' : ''}, `;
+//   if (minutes > 0) result += `${minutes} minute${minutes > 1 ? 's' : ''}, `;
+//   result += `${seconds} second${seconds > 1 ? 's' : ''}`;
 
-  if (target.isBefore(now)) {
-    result = " ";
-  }
+//   if (target.isBefore(now)) {
+//     result = " ";
+//   }
 
-  countdownElement.textContent = result;
-}
+//   countdownElement.textContent = result;
+// }
 
-var spanElement = document.getElementById('nextStream');
+// var spanElement = document.getElementById('nextStream');
 
-if (unixTimestamp === false) {
-  spanElement.textContent = 'TBD';
-} else {
-  spanElement.textContent = formatTimestamp(unixTimestamp);
-  var countdownElement = document.getElementById('countdown');
-  countdown();
-  setInterval(countdown, 1000);
-}
+// if (unixTimestamp === false) {
+//   spanElement.textContent = 'TBD';
+// } else {
+//   spanElement.textContent = formatTimestamp(unixTimestamp);
+//   var countdownElement = document.getElementById('countdown');
+//   countdown();
+//   setInterval(countdown, 1000);
+// }
 
 
-// #### Uncomment the below two lines to re-enable countdown #######
+
+      // Time windows: Monday, Tuesday, Thursday, and Sunday from 2 PM to 4 PM Central Time
+      const liveDays = [0, 1, 2, 4];  // Sunday (0), Monday (1), Tuesday (2), Thursday (4)
+      const liveStartHour = 14;  // 2 PM
+      const liveEndHour = 18;    // 4 PM
+
+      // Helper function to get the current time in Central Time
+      function getCentralTime() {
+          return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+      }
+
+      // Helper function to find the next live window
+      function getNextLiveWindow() {
+          const now = getCentralTime();
+          const currentDay = now.getDay();
+          const currentHour = now.getHours();
+          
+          // Loop through the live days to find the next one
+          for (let i = 0; i < 7; i++) {
+              const dayToCheck = (currentDay + i) % 7;  // Get the next day
+              if (liveDays.includes(dayToCheck)) {
+                  if (i === 0 && currentHour < liveStartHour) {
+                      // If today is a live day and before 2 PM, return today at 2 PM
+                      return new Date(now.getFullYear(), now.getMonth(), now.getDate(), liveStartHour, 0, 0);
+                  }
+                  if (i > 0) {
+                      // If it's not today, return the next live day at 2 PM
+                      const nextLiveDate = new Date(now);
+                      nextLiveDate.setDate(now.getDate() + i);
+                      nextLiveDate.setHours(liveStartHour, 0, 0, 0);
+                      return nextLiveDate;
+                  }
+              }
+          }
+          return null;
+      }
+
+      // id "nextStream" is for the next stream date
+      // id "countdown" is the countdown
+      // Main function to update the status every second
+      function updateStatus() {
+          const now = getCentralTime();
+          const currentDay = now.getDay();
+          const currentHour = now.getHours();
+
+          // Check if it's a live day and between 2 PM and 4 PM
+          if (liveDays.includes(currentDay) && currentHour >= liveStartHour && currentHour < liveEndHour) {
+              document.getElementById('countdown').textContent = "LIVE NOW!";
+
+          } else {
+              const nextLiveWindow = getNextLiveWindow();
+              console.log(typeof nextLiveWindow);
+              const timeUntilNextLive = Math.floor((nextLiveWindow - now) / 1000);  // in seconds
+
+              const days = Math.floor(timeUntilNextLive / (3600 * 24));
+              const hours = Math.floor((timeUntilNextLive % (3600 * 24)) / 3600);
+              const minutes = Math.floor((timeUntilNextLive % 3600) / 60);
+              const seconds = timeUntilNextLive % 60;
+
+              let countdownText = '';
+
+              if (days > 0) {
+                countdownText = `${days} day${days > 1 ? 's' : ''} ${hours} hour${hours > 1 ? 's' : ''} ${minutes} minute${minutes > 1 ? 's' : ''} ${seconds} second${seconds > 1 ? 's' : ''}`;
+              } else {
+                countdownText = `${hours} hour${hours > 1 ? 's' : ''} ${minutes} minute${minutes > 1 ? 's' : ''} ${seconds} second${seconds > 1 ? 's' : ''}`;
+              }
+
+              document.getElementById('countdown').textContent = countdownText;
+
+              var spanElement = document.getElementById('nextStream');
+              const unixTimestamp = Math.floor(nextLiveWindow.getTime() / 1000);
+              spanElement.textContent = formatTimestamp(unixTimestamp);
+          }
+
+          // spanElement.textContent = formatTimestamp(unixTimestamp);
+//   var countdownElement = document.getElementById('countdown');
+//   countdown();
+//   setInterval(countdown, 1000);
+      }
+
+      updateStatus();
+
+      // Call updateStatus every second
+      setInterval(updateStatus, 1000);
+
 
 
 </script>
